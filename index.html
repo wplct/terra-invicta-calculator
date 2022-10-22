@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>计算器</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.10"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="data/TIHabModuleTemplate.js"></script>
+    <script src="data/TIProjectTemplate.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-main>
+            <el-table
+                    border
+                    show-summary
+                    :data="tableData"
+                    style="width: 100%">
+
+                <el-table-column
+                        prop="name"
+                        label="舱体名"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="num"
+                        label="数量"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="_population"
+                        label="人数"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="_power"
+                        label="电力需求">
+                </el-table-column>
+                <el-table-column
+                        prop="_incomeResearch_month"
+                        label="研究产出">
+                </el-table-column>
+                <el-table-column
+                        prop="control"
+                        label="控制点">
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template slot-scope="scope">
+                        <el-button
+                                size="mini"
+                                type=""
+                                @click="handleAdd(scope.$index, scope.row)">+1
+                        </el-button>
+                        <el-button
+                                size="mini"
+                                type="danger"
+                                @click="handleDelete(scope.$index, scope.row)">删除
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </el-main>
+        <el-aside width="200px">
+            <div v-for=" module in moduleData">
+                <button
+                        v-if="module.requiredProjectName!=='Project_AlienMasterProject' && module.requiredProjectName!==''"
+                        @click="add(module)">
+                    {{l(module.requiredProjectName)}}
+                </button>
+            </div>
+
+        </el-aside>
+    </el-container>
+</div>
+<script>
+    TIHabModuleTemplate.sort(function (a, b) {
+        return b.baseMass_tons - a.baseMass_tons;
+    });
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue!',
+            tableData: [],
+            moduleData: TIHabModuleTemplate,
+            i18n: TIProjectTemplate,
+        },
+        methods: {
+            l(name) {
+                let key = 'TIProjectTemplate.displayName.' + name
+                if (this.i18n[key]) {
+                    return this.i18n[key]
+                }
+                return name
+            },
+            add(module) {
+                module['name'] = this.l(module.requiredProjectName);
+                module['num'] = 1;
+                // 重复处理
+                let index = this.tableData.findIndex(function (value, index, arr) {
+                    return value.name === module.name;
+                });
+                if(index!==-1){
+                    this.handleAdd(index, this.tableData[index]);
+                    return;
+                }
+                module['population'] = module['crew']
+                // 农场特殊处理
+                if (module['specialRules'].includes('Farm')) {
+                    module['population'] = module['crew']-module['specialRulesValue']
+                }
+                // 太阳能特殊处理
+                if (module['specialRules'].includes('Solar_Power_Variable_Output')) {
+                    module['power'] = Math.ceil(module['power'] * 6.666)
+                }
+                this.handleNum(module)
+                this.tableData.push(module);
+            },
+            handleDelete(index, row) {
+                if(row.num>1){
+                    this.tableData[index].num-=1;
+                    this.handleNum(this.tableData[index])
+                    this.tableData = JSON.parse(JSON.stringify(this.tableData));
+                    return;
+                }
+                this.tableData.splice(index, 1)
+            },
+            handleAdd(index, row) {
+                this.tableData[index].num+=1;
+                this.handleNum(this.tableData[index])
+                this.tableData = JSON.parse(JSON.stringify(this.tableData));
+            },
+            handleNum(module){
+                module['_population'] = module['population'] * module['num'];
+                module['_power'] = module['power'] * module['num'];
+                module['_incomeResearch_month'] = module['incomeResearch_month'] * module['num'];
+            }
+        }
+    })
+</script>
+</body>
+</html>
